@@ -4,7 +4,6 @@ require 'active_model'
 require 'validated_object/version'
 require 'validated_object/simplified_api'
 
-
 module ValidatedObject
   # @abstract Subclass and add `attr_accessor` and validations
   #   to create custom validating objects.
@@ -64,7 +63,6 @@ module ValidatedObject
     def initialize(attributes = EMPTY_HASH)
       set_instance_variables from_hash: attributes
       check_validations!
-      nil
     end
 
     def validated_attr(attribute_name, **validation_options)
@@ -96,7 +94,6 @@ module ValidatedObject
     #     validates :neutered, type: Boolean, allow_nil: true  # Typed but optional
     #   end
     class TypeValidator < ActiveModel::EachValidator
-
       # @return [nil]
       def validate_each(record, attribute, value)
         validation_options = options
@@ -105,6 +102,7 @@ module ValidatedObject
         # Support type: Array, element_type: ElementType
         if expected_class == Array && validation_options[:element_type]
           return save_error(record, attribute, value, validation_options) unless value.is_a?(Array)
+
           element_type = validation_options[:element_type]
           unless value.all? { |el| el.is_a?(element_type) }
             record.errors.add attribute, validation_options[:message] || "contains non-#{element_type} elements"
@@ -139,7 +137,9 @@ module ValidatedObject
     end
 
     # Register the TypeValidator with ActiveModel so `type:` validation option works
-    ActiveModel::Validations.const_set(:TypeValidator, TypeValidator) unless ActiveModel::Validations.const_defined?(:TypeValidator)
+    unless ActiveModel::Validations.const_defined?(:TypeValidator)
+      ActiveModel::Validations.const_set(:TypeValidator, TypeValidator)
+    end
 
     # Allow 'validated' as a synonym for 'validates'
     def self.validated(*args, **kwargs, &block)

@@ -1,4 +1,4 @@
-require "active_support/concern"
+require 'active_support/concern'
 
 # Enable a simplified API for the common case of
 # read-only ValidatedObjects.
@@ -10,6 +10,7 @@ module ValidatedObject
       # Simply delegate to `attr_reader` and `validates`.
       def validated_attr(attribute, *options)
         attr_reader attribute
+
         validates attribute, *options
       end
 
@@ -21,6 +22,7 @@ module ValidatedObject
       # Alias for validated_attr for compatibility with test usage.
       def validates_attr(attribute, *options, **kwargs)
         attr_reader attribute
+
         if kwargs[:type]
           type_val = kwargs.delete(:type)
           element_type = kwargs.delete(:element_type)
@@ -40,6 +42,5 @@ module ValidatedObject
         end
       end
     end
-
   end
 end
