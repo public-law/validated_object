@@ -32,8 +32,6 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency 'rake', '>= 12.3.3'
   spec.add_development_dependency 'rspec', '>= 3.9.0'
-  spec.add_development_dependency 'sorbet', '>= 0.5.5890'
 
   spec.add_runtime_dependency 'activemodel', '>= 3.2.21'
-  spec.add_runtime_dependency 'sorbet-runtime', '>= 0.5.5890'
 end
