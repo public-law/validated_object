@@ -125,6 +125,7 @@ describe ValidatedObject do
 
   context 'Array element type validation' do
     class Comment; end
+
     class Post < ValidatedObject::Base
       validates_attr :comments, type: Array, element_type: Comment, allow_nil: true
       validates_attr :tags, type: Array, element_type: String, allow_nil: true
@@ -159,7 +160,7 @@ describe ValidatedObject do
       }.to raise_error(ArgumentError, /is a String, not a Array/)
     end
 
-    it 'allows nil if allow_nil: true' do
+    it 'allows an Array to be nil if allow_nil: true' do
       post = Post.new(comments: nil, tags: nil)
       expect(post).to be_valid
     end
