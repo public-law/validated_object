@@ -111,58 +111,60 @@ describe ValidatedObject do
       expect(apple).to be_valid
       expect { SynonymApple.new(diameter: 'bad') }.to raise_error(ArgumentError)
     end
-  end
 
-  context 'Array element type validation' do
-    class Comment; end
+    context 'Array element type validation' do
+      class Comment; end
 
-    class Post < ValidatedObject::Base
-      validates_attr :comments, type: Array, element_type: Comment, allow_nil: true
-      validates_attr :tags,     type: Array, element_type: String,  allow_nil: true
-    end
-
-    it 'accepts an array of correct element type (element_type: syntax)' do
-      c1 = Comment.new
-      c2 = Comment.new
-      post = Post.new(comments: [c1, c2])
-      expect(post).to be_valid
-    end
-
-    it 'rejects an array with wrong element type (element_type: syntax)' do
-      expect do
-        Post.new(comments: [Comment.new, 'bad'])
-      end.to raise_error(ArgumentError, /contains non-Comment elements/)
-    end
-
-    it 'accepts an array of correct element type (element_type: syntax)' do
-      post = Post.new(tags: %w[foo bar])
-      expect(post).to be_valid
-    end
-
-    it 'rejects an array with wrong element type (element_type: syntax)' do
-      expect do
-        Post.new(tags: ['foo', 123])
-      end.to raise_error(ArgumentError, /contains non-String elements/)
-    end
-
-    it 'rejects non-array values when element_type is specified' do
-      expect do
-        Post.new(comments: 'not an array')
-      end.to raise_error(ArgumentError, /is a String, not a Array/)
-    end
-
-    it 'allows an Array to be nil if allow_nil: true' do
-      post = Post.new(comments: nil, tags: nil)
-      expect(post).to be_valid
-    end
-
-    it 'supports a streamlined syntax for element_type' do
-      class Post2 < ValidatedObject::Base
-        validates_attr :comments, type: Array[Comment], allow_nil: true
+      class Post < ValidatedObject::Base
+        validates_attr :comments, type: Array, element_type: Comment, allow_nil: true
+        validates_attr :tags,     type: Array, element_type: String,  allow_nil: true
       end
 
-      post = Post2.new(comments: [Comment.new, Comment.new])
-      expect(post).to be_valid
+      it 'accepts an array of correct element type (element_type: syntax)' do
+        c1 = Comment.new
+        c2 = Comment.new
+        post = Post.new(comments: [c1, c2])
+        expect(post).to be_valid
+      end
+
+      it 'rejects an array with wrong element type (element_type: syntax)' do
+        expect do
+          Post.new(comments: [Comment.new, 'bad'])
+        end.to raise_error(ArgumentError, /contains non-Comment elements/)
+      end
+
+      it 'accepts an array of correct element type (element_type: syntax)' do
+        post = Post.new(tags: %w[foo bar])
+        expect(post).to be_valid
+      end
+
+      it 'rejects an array with wrong element type (element_type: syntax)' do
+        expect do
+          Post.new(tags: ['foo', 123])
+        end.to raise_error(ArgumentError, /contains non-String elements/)
+      end
+
+      it 'rejects non-array values when element_type is specified' do
+        expect do
+          Post.new(comments: 'not an array')
+        end.to raise_error(ArgumentError, /is a String, not a Array/)
+      end
+
+      it 'allows an Array to be nil if allow_nil: true' do
+        post = Post.new(comments: nil, tags: nil)
+        expect(post).to be_valid
+      end
+    end
+
+    context 'Array element type validation with streamlined syntax' do
+      it 'supports a streamlined syntax for element_type' do
+        class Post2 < ValidatedObject::Base
+          validates_attr :comments, type: Array[Comment], allow_nil: true
+        end
+
+        post = Post2.new(comments: [Comment.new, Comment.new])
+        expect(post).to be_valid
+      end
     end
   end
 end
