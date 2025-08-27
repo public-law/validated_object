@@ -24,6 +24,14 @@ module ValidatedObject
         if kwargs[:type]
           type_val = kwargs.delete(:type)
           element_type = kwargs.delete(:element_type)
+
+          # Parse Array[ElementType] syntax
+          if type_val.is_a?(Array) && type_val.length == 1 && type_val[0].is_a?(Class)
+            # This handles Array[Comment] syntax
+            element_type = type_val[0]
+            type_val = Array
+          end
+
           opts = { type: { with: type_val } }
           opts[:type][:element_type] = element_type if element_type
           validates attribute, opts.merge(kwargs)

@@ -128,7 +128,7 @@ describe ValidatedObject do
 
     class Post < ValidatedObject::Base
       validates_attr :comments, type: Array, element_type: Comment, allow_nil: true
-      validates_attr :tags, type: Array, element_type: String, allow_nil: true
+      validates_attr :tags,     type: Array, element_type: String,  allow_nil: true
     end
 
     it 'accepts an array of correct element type (element_type: syntax)' do
@@ -162,6 +162,15 @@ describe ValidatedObject do
 
     it 'allows an Array to be nil if allow_nil: true' do
       post = Post.new(comments: nil, tags: nil)
+      expect(post).to be_valid
+    end
+
+    it 'supports a streamlined syntax for element_type' do
+      class Post2 < ValidatedObject::Base
+        validates_attr :comments, type: Array[Comment], allow_nil: true
+      end
+
+      post = Post2.new(comments: [Comment.new, Comment.new])
       expect(post).to be_valid
     end
   end
