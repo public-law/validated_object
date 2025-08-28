@@ -3,14 +3,12 @@ plugins:
   - rubocop-rake
 
 AllCops:
-  TargetRubyVersion: 3.2
-  NewCops: enable
   SuggestExtensions: true
   DisplayCopNames: true
   ExtraDetails: true
   Color: true
   FormatStyleGuide: true
+  DisabledByDefault: false
 
-  # Disable Lint/ConstantDefinitionInBlock
-  Lint/ConstantDefinitionInBlock:
-    Enabled: false
+Lint/ConstantDefinitionInBlock:
+  Enabled: false

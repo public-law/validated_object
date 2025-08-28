@@ -156,9 +156,9 @@ describe ValidatedObject do
       end
     end
 
-    context 'Array element type validation with streamlined syntax' do
+    context 'when an Array is defined with the streamlined syntax' do
       class Post2 < ValidatedObject::Base
-        validates_attr :comments, type: Array[Comment], allow_nil: true
+        validates_attr :comments, type: [Comment], allow_nil: true
       end
 
       it 'supports a streamlined syntax for element_type' do
