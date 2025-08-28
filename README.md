@@ -154,7 +154,7 @@ the data.
 
 ### Use in code generation
 
-My [Schema.org structured data gem](https://github.com/public-law/schema-dot-org) uses ValidatedObjects to recursively create well formed HTML / JSON-LD. 
+The [Schema.org structured data gem](https://github.com/public-law/schema-dot-org) uses ValidatedObjects to recursively create well formed HTML / JSON-LD. 
 
 ## Installation
 
