@@ -1,196 +1,213 @@
 [![Gem Version](https://badge.fury.io/rb/validated_object.svg)](https://badge.fury.io/rb/validated_object) 
 # ValidatedObject
 
-`Plain Old Ruby` + `Rails Validations` = **self-checking Ruby objects**.
+**Self-validating Plain Old Ruby Objects** using Rails validations.
 
-## Example: A `Person` class that ensures its `name` isn't blank (nil or empty string):
+Create Ruby objects that validate themselves on instantiation, with clear error messages and flexible type checking including union types.
 
 ```ruby
 class Person < ValidatedObject::Base
-  attr_reader :name
-  validates :name, presence: true
+  validates_attr :name, presence: true
+  validates_attr :email, format: { with: URI::MailTo::EMAIL_REGEXP }
 end
 
-# Instantiating it runs the validations.
-me  = Person.new(name: 'Robert')
-you = Person.new(name: '')     # => ArgumentError: "Name can't be blank"
+person = Person.new(name: 'Alice', email: 'alice@example.com')  # ✓ Valid
+Person.new(name: '', email: 'invalid')  # ✗ ArgumentError: "Name can't be blank; Email is invalid"
 ```
 
-Note how Person's two lines of code are nothing new: `attr_reader` is standard Ruby. [`validates`](https://guides.rubyonrails.org/active_record_validations.html) is standard Rails. I use classes like these as Data Transfer Objects at my system boundaries.
+## Key Features
 
+* **Union Types**: `union(String, Integer)` for flexible type validation
+* **Array Element Validation**: `type: [String]` ensures arrays contain specific types  
+* **Clear Error Messages**: Descriptive validation failures for debugging
+* **Rails Validations**: Full ActiveModel::Validations support
+* **Immutable Objects**: Read-only attributes with validation
 
-## Goals
+Perfect for data imports, API boundaries, and structured data generation.
 
-* Very readable error messages
-* Clean, minimal syntax
+## Basic Usage
 
-This is a small layer around
-[ActiveModel::Validations](http://api.rubyonrails.org/classes/ActiveModel/Validations/ClassMethods.html#method-i-validates). (About 25 lines of code.) So if you know how to use [Rails Validations](https://guides.rubyonrails.org/active_record_validations.html), you're good to go. I wrote this to help with CSV data imports and [website structured data](https://github.com/public-law/schema-dot-org).
-
-
-## Usage
-
-
-### Writing a self-validating object
-
-All of the [ActiveModel::Validations](http://api.rubyonrails.org/classes/ActiveModel/Validations/ClassMethods.html#method-i-validates) are available, plus a new one, `TypeValidator`.
+### Simple Validation
 
 ```ruby
 class Dog < ValidatedObject::Base
-  # Plain old Ruby
-  attr_accessor :name, :birthday
+  validates_attr :name, presence: true
+  validates_attr :age, type: Integer, allow_nil: true
+end
 
-  # Plain old Rails
-  validates :name, presence: true
-  
-  # A new type-validation if you'd like to use it
-  validates :birthday, type: Date, allow_nil: true  # Strongly typed but optional
+spot = Dog.new(name: 'Spot', age: 3)
+spot.valid? # => true
+```
+
+### Type Validation
+
+```ruby
+class Document < ValidatedObject::Base
+  validates_attr :title, type: String
+  validates_attr :published_at, type: Date, allow_nil: true
+  validates_attr :active, type: Boolean
 end
 ```
 
-Alternatively, we could make it immutable with Ruby's [attr_reader](https://bootrails.com/blog/ruby-attr-accessor-attr-writer-attr-reader/#2-attr_reader-attr_writer--attr_accessor):
+The `Boolean` type accepts `true` or `false` values.
+
+## Union Types
+
+Union types allow attributes to accept multiple possible types:
+
+### Basic Union Types
 
 ```ruby
-class ImmutableDog < ValidatedObject::Base
+class Article < ValidatedObject::Base
+  # ID can be either a String or Integer
+  validates_attr :id, type: union(String, Integer)
+  
+  # Status can be specific symbol values
+  validates_attr :status, type: union(:draft, :published, :archived)
+end
+
+article = Article.new(id: "abc123", status: :published)  # ✓ String ID
+article = Article.new(id: 42, status: :draft)            # ✓ Integer ID
+Article.new(id: 3.14, status: :invalid)                  # ✗ ArgumentError
+```
+
+### Mixed Type and Array Unions
+
+```ruby
+class Post < ValidatedObject::Base
+  # Author can be a Person object or Organization object
+  validates_attr :author, type: union(Person, Organization)
+  
+  # Tags can be a single string or array of strings
+  validates_attr :tags, type: union(String, [String])
+  
+  # Categories supports multiple formats
+  validates_attr :categories, type: union(String, [String], [Category])
+end
+
+# All of these are valid:
+Post.new(author: person, tags: "ruby")
+Post.new(author: org, tags: ["ruby", "rails"])  
+Post.new(author: person, categories: [category1, category2])
+```
+
+### Schema.org Example
+
+Union types are perfect for Schema.org structured data:
+
+```ruby
+class Organization < ValidatedObject::Base
+  # Address can be text or structured PostalAddress
+  validates_attr :address, type: union(String, PostalAddress)
+  
+  # Founder can be Person or Organization
+  validates_attr :founder, type: union(Person, Organization, [Person], [Organization])
+  
+  # Logo can be URL string or ImageObject  
+  validates_attr :logo, type: union(String, ImageObject)
+end
+```
+
+## Array Element Validation
+
+Validate that arrays contain specific types:
+
+```ruby
+class Playlist < ValidatedObject::Base
+  validates_attr :songs, type: [Song]           # Array of Song objects
+  validates_attr :genres, type: [String]        # Array of strings
+  validates_attr :ratings, type: [Integer]      # Array of integers
+end
+
+playlist = Playlist.new(
+  songs: [song1, song2],
+  genres: ["rock", "jazz"],  
+  ratings: [4, 5, 3]
+)
+```
+
+## Alternative Syntax
+
+You can also use the standard Rails `validates` method:
+
+```ruby
+class Dog < ValidatedObject::Base
   attr_reader :name, :birthday
 
   validates :name, presence: true
-  validates :birthday, type: Date, allow_nil: true
+  validates :birthday, type: union(Date, DateTime), allow_nil: true
 end
 ```
 
-And again, that `ImmutableDog` consists of one line of plain Ruby and two lines of standard Rails validations.
+## Error Messages
 
-### `attr_reader` followed by `validates` is such a common pattern that there's a DSL which wraps them up into one call: `validates_attr`.
-
-Here's the immutable version of `Dog` re-written with the new, simplified DSL:
+ValidatedObject provides clear, actionable error messages:
 
 ```ruby
-class ImmutableDog < ValidatedObject::Base
-  validates_attr :name, presence: true
-  validates_attr :birthday, type: Date, allow_nil: true 
-end
+doc = Document.new(title: 123, status: :invalid)
+# => ArgumentError: Title is a Integer, not a String; Status is a Symbol, not one of :draft, :published, :archived
+
+post = Post.new(tags: [123, "valid"])  
+# => ArgumentError: Tags is a Array, not one of String, Array of String
 ```
 
-### About that `type:` check
+## Use Cases
 
-The included `TypeValidator` is what enables `type: Date`, above. All classes can be checked, as well as a pseudo-class `Boolean`. E.g.:
-
-```ruby
-#...
-validates :premium_membership, type: Boolean
-#...
-```
-
-
-### Array element type validation
-
-You can validate that an attribute is an array of a specific type using array syntax:
+### Data Import Validation
 
 ```ruby
-# Validate that names is an array of String objects.
-validates_attr :names, type: [String]
-```
-
-If the array contains any elements that are not of the specified type, validation will fail with a clear error message.
-
-
-### Instantiating and automatically validating
-
-```ruby
-# This Dog instance validates itself at the end of instantiation.
-spot = Dog.new(name: 'Spot')
-```
-
-```ruby
-# We can also explicitly test for validity because all of
-# ActiveModel::Validations is available.
-spot.valid?  # => true
-
-spot.birthday = Date.new(2015, 1, 23)
-spot.valid?  # => true
-```
-
-### Good error messages
-
-Any of the standard Validations methods can be
-used to test an instance, plus the custom `check_validations!` convenience method:
-
-```ruby
-spot.birthday = '2015-01-23'
-spot.valid?  # => false
-spot.check_validations!  # => ArgumentError: Birthday is a String, not a Date
-```
-
-Note the clear, explicit error message. These are great when reading a log
-file following a data import. It describes all the invalid conditions. Let's 
-test it by making another attribute invalid:
-
-```ruby
-spot.name = nil
-spot.check_validations!  # => ArgumentError: Name can't be blank; Birthday is a String, not a Date
-```
-
-
-### Use in parsing data
-
-I often use a validated object in a loop to import data, e.g.:
-
-```ruby
-# Import a CSV file of dogs
-dogs = []
-csv.next_row do |row|
+# Import CSV with validation
+valid_records = []
+CSV.foreach('data.csv', headers: true) do |row|
   begin
-    dogs << Dog.new(name: row.name)
+    valid_records << Person.new(row.to_h)
   rescue ArgumentError => e
-    logger.warn(e)
+    logger.warn "Invalid row: #{e.message}"
   end
 end
 ```
 
-The result is that `dogs` is an array of guaranteed valid Dog objects. And the
-error log lists unparseable rows with good info for tracking down problems in
-the data.
+### API Response Objects
 
-### Use in code generation
+```ruby
+class ApiResponse < ValidatedObject::Base
+  validates_attr :data, type: union(Hash, [Hash])
+  validates_attr :status, type: union(:success, :error)
+  validates_attr :message, type: String, allow_nil: true
+end
+```
 
-The [Schema.org structured data gem](https://github.com/public-law/schema-dot-org) uses ValidatedObjects to recursively create well formed HTML / JSON-LD. 
+### Schema.org Structured Data
+
+The [Schema.org gem](https://github.com/public-law/schema-dot-org) uses ValidatedObject for type-safe structured data generation.
 
 ## Installation
 
-Add this line to your application's Gemfile:
+Add to your Gemfile:
 
 ```ruby
 gem 'validated_object'
 ```
 
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install validated_object
-
-
+Then run:
+```bash
+bundle install
+```
 
 ## Development
 
-(TODO: Verify these instructions.) After checking out the repo, run `bin/setup`
-to install dependencies. Then, run `rake spec` to run the tests. You can also
-run `bin/console` for an interactive prompt that will allow you to experiment.
+After checking out the repo:
 
-To install this gem onto your local machine, run `bundle exec rake install`. To
-release a new version, update the version number in `version.rb`, and then run
-`bundle exec rake release`, which will create a git tag for the version, push
-git commits and tags, and push the `.gem` file to
-[rubygems.org](https://rubygems.org).
+```bash
+bin/setup          # Install dependencies
+bundle exec rspec  # Run tests  
+bin/console        # Interactive prompt
+```
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub.
-
+Bug reports and pull requests welcome on GitHub.
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
+Available as open source under the [MIT License](http://opensource.org/licenses/MIT).
