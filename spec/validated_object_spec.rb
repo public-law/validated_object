@@ -91,8 +91,7 @@ describe ValidatedObject do
         validates :rotten, type: ValidatedObject::Base::Boolean
       end
 
-      rotten_apple = boolean_apple.new rotten: true
-      expect(rotten_apple).to be_valid
+      expect(boolean_apple.new(rotten: true)).to be_valid
     end
 
     it 'rejects invalid boolean types' do
