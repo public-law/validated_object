@@ -3,10 +3,25 @@
 require 'spec_helper'
 
 describe ValidatedObject do
-  class Apple < ValidatedObject::Base
-    attr_accessor :diameter
+  let(:apple) do
+    Class.new(ValidatedObject::Base) do
+      attr_accessor :diameter
 
-    validates :diameter, type: Float
+      validates :diameter, type: Float
+    end
+  end
+
+  let(:immutable_apple) do
+    Class.new(ValidatedObject::Base) do
+      attr_reader :diameter
+
+      validates :diameter, type: Float
+    end
+  end
+
+  let(:apple_subclass) do
+    Class.new(apple) do
+    end
   end
 
   it 'has a version number' do
@@ -19,18 +34,12 @@ describe ValidatedObject do
 
   it 'throws a TypeError if non-hash is given' do
     expect do
-      Apple.new(5)
+      apple.new(5)
     end.to raise_error(TypeError)
   end
 
   it 'supports readonly attributes' do
-    class ImmutableApple < ValidatedObject::Base
-      attr_reader :diameter
-
-      validates :diameter, type: Float
-    end
-
-    apple = ImmutableApple.new(diameter: 4.0)
+    apple = immutable_apple.new(diameter: 4.0)
     expect(apple.diameter).to eq 4.0
     expect { apple.diameter = 5.0 }.to raise_error(NoMethodError)
   end
@@ -47,36 +56,34 @@ describe ValidatedObject do
 
   it 'raises error on unknown attribute' do
     expect do
-      Apple.new(diameter: 4.0, name: 'Bert')
+      apple.new(diameter: 4.0, name: 'Bert')
     end.to raise_error(NoMethodError)
   end
 
-  context 'TypeValidator' do
+  context 'when using the TypeValidator' do
     it 'verifies a valid type' do
-      small_apple = Apple.new(diameter: 2.0)
+      small_apple = apple.new(diameter: 2.0)
       expect(small_apple).to be_valid
     end
 
     it 'rejects an invalid type' do
       expect do
-        Apple.new diameter: '2'
+        apple.new diameter: '2'
       end.to raise_error(ArgumentError)
     end
 
     it 'can verify a subclass' do
-      class Apple2 < Apple
-      end
+      small_apple = apple_subclass.new(diameter: 5.5)
 
-      small_apple = Apple2.new(diameter: 5.5)
       expect(small_apple).to be_valid
     end
 
     it 'can verify a subclass with a new attribute' do
-      class Apple2 < Apple
+      apple_subclass = Class.new(apple) do
         validated_attr :color, type: String
       end
 
-      red_apple = Apple2.new(diameter: 5.5, color: 'red')
+      red_apple = apple_subclass.new(diameter: 5.5, color: 'red')
       expect(red_apple).to be_valid
     end
 
