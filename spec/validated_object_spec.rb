@@ -118,81 +118,82 @@ describe ValidatedObject do
     end
 
     context 'when an Array is defined with the verbose syntax' do
-      class Comment; end
+      #
+      # I needed to create actual classes for these specs to work.
+      # Therefore I namespaced them with Spec.
+      #
+      class SpecComment; end # rubocop:disable Lint/LeakyConstantDeclaration
 
-      class Post < ValidatedObject::Base
-        validates_attr :comments, type: Array, element_type: Comment, allow_nil: true
-        validates_attr :tags,     type: Array, element_type: String,  allow_nil: true
+      class SpecPost < ValidatedObject::Base # rubocop:disable Lint/LeakyConstantDeclaration
+        validates_attr :comments, type: Array, element_type: SpecComment, allow_nil: true
+        validates_attr :tags,     type: Array, element_type: String, allow_nil: true
       end
 
       it 'accepts an array of correct element type (element_type: syntax) - 1' do
-        c1 = Comment.new
-        c2 = Comment.new
-        post = Post.new(comments: [c1, c2])
-        expect(post).to be_valid
+        c1 = SpecComment.new
+        c2 = SpecComment.new
+        expect(SpecPost.new(comments: [c1, c2])).to be_valid
       end
 
       it 'rejects an array with wrong element type (element_type: syntax) - 1' do
         expect do
-          Post.new(comments: [Comment.new, 'bad'])
-        end.to raise_error(ArgumentError, /contains non-Comment elements/)
+          SpecPost.new(comments: [SpecComment.new, 'bad'])
+        end.to raise_error(ArgumentError, /contains non-SpecComment elements/)
       end
 
       it 'accepts an array of correct element type (element_type: syntax) - 2' do
-        post = Post.new(tags: %w[foo bar])
-        expect(post).to be_valid
+        expect(SpecPost.new(tags: %w[foo bar])).to be_valid
       end
 
       it 'rejects an array with wrong element type (element_type: syntax) - 2' do
         expect do
-          Post.new(tags: ['foo', 123])
+          SpecPost.new(tags: ['foo', 123])
         end.to raise_error(ArgumentError, /contains non-String elements/)
       end
 
       it 'rejects non-array values when element_type is specified' do
         expect do
-          Post.new(comments: 'not an array')
+          SpecPost.new(comments: 'not an array')
         end.to raise_error(ArgumentError, /is a String, not a Array/)
       end
 
       it 'allows an Array to be nil if allow_nil: true' do
-        post = Post.new(comments: nil, tags: nil)
-        expect(post).to be_valid
+        expect(SpecPost.new(comments: nil, tags: nil)).to be_valid
       end
     end
 
     context 'when an Array is defined with the streamlined syntax' do
       let(:streamlined_post) do
         Class.new(ValidatedObject::Base) do
-          validates_attr :comments, type: [Comment], allow_nil: true
+          validates_attr :comments, type: [SpecComment], allow_nil: true
           validates_attr :id,       type: Integer
         end
       end
 
       it 'supports the streamlined syntax' do
-        post = streamlined_post.new(comments: [Comment.new, Comment.new], id: 1)
+        post = streamlined_post.new(comments: [SpecComment.new, SpecComment.new], id: 1)
 
         expect(post).to be_valid
       end
 
       it 'assigns id correctly' do
-        post = streamlined_post.new(comments: [Comment.new, Comment.new], id: 1)
+        post = streamlined_post.new(comments: [SpecComment.new, SpecComment.new], id: 1)
         expect(post.id).to eq 1
       end
 
       it 'assigns comments as an array' do
-        post = streamlined_post.new(comments: [Comment.new, Comment.new], id: 1)
+        post = streamlined_post.new(comments: [SpecComment.new, SpecComment.new], id: 1)
         expect(post.comments).to be_an(Array)
       end
 
       it 'preserves comment count' do
-        post = streamlined_post.new(comments: [Comment.new, Comment.new], id: 1)
+        post = streamlined_post.new(comments: [SpecComment.new, SpecComment.new], id: 1)
         expect(post.comments.length).to eq 2
       end
 
       it 'preserves comment types' do
-        post = streamlined_post.new(comments: [Comment.new, Comment.new], id: 1)
-        expect(post.comments.first).to be_a(Comment)
+        post = streamlined_post.new(comments: [SpecComment.new, SpecComment.new], id: 1)
+        expect(post.comments.first).to be_a(SpecComment)
       end
     end
   end
