@@ -95,7 +95,7 @@ describe ValidatedObject do
     end
 
     it 'rejects invalid boolean types' do
-      class Apple4 < ValidatedObject::Base
+      boolean_apple = Class.new(ValidatedObject::Base) do
         attr_accessor :rotten
 
         # Outside of specs, in normal usage, you would use:
@@ -103,7 +103,7 @@ describe ValidatedObject do
         validates :rotten, type: ValidatedObject::Base::Boolean
       end
 
-      expect { Apple4.new rotten: 1 }.to raise_error(ArgumentError)
+      expect { boolean_apple.new(rotten: 1) }.to raise_error(ArgumentError)
     end
 
     it "allows 'validated' as a synonym for 'validates'" do
