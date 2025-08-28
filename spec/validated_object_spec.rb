@@ -45,11 +45,8 @@ describe ValidatedObject do
   end
 
   it 'supports simplified readonly attributes' do
-    class ImmutableApple < ValidatedObject::Base
-      validated_attr :diameter, type: Float
-    end
+    apple = immutable_apple.new(diameter: 4.0)
 
-    apple = ImmutableApple.new(diameter: 4.0)
     expect(apple.diameter).to eq 4.0
     expect { apple.diameter = 5.0 }.to raise_error(NoMethodError)
   end
