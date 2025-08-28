@@ -10,11 +10,11 @@ describe ValidatedObject do
   end
 
   it 'has a version number' do
-    expect(ValidatedObject::VERSION).not_to be nil
+    expect(ValidatedObject::VERSION).not_to be_nil
   end
 
   it 'can be referenced' do
-    expect(ValidatedObject::Base).not_to be nil
+    expect(ValidatedObject::Base).not_to be_nil
   end
 
   it 'throws a TypeError if non-hash is given' do
@@ -157,11 +157,11 @@ describe ValidatedObject do
     end
 
     context 'Array element type validation with streamlined syntax' do
-      it 'supports a streamlined syntax for element_type' do
-        class Post2 < ValidatedObject::Base
-          validates_attr :comments, type: Array[Comment], allow_nil: true
-        end
+      class Post2 < ValidatedObject::Base
+        validates_attr :comments, type: Array[Comment], allow_nil: true
+      end
 
+      it 'supports a streamlined syntax for element_type' do
         post = Post2.new(comments: [Comment.new, Comment.new])
         expect(post).to be_valid
       end
