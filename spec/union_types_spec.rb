@@ -11,7 +11,7 @@ class SpecUnionComment; end
 
 class SpecMultiType < ValidatedObject::Base
   attr_accessor :id, :status, :data
-  
+
   validates :id, type: union(String, Integer)
   validates :status, type: union(:active, :inactive, :pending)
   validates :data, type: union(Hash, [Hash]), allow_nil: true
@@ -23,17 +23,18 @@ end
 
 class SpecComplexUnion < ValidatedObject::Base
   attr_accessor :flexible
+
   validates :flexible, type: union(String, Integer, [String], [Hash])
 end
 
 class SpecSingleUnion < ValidatedObject::Base
   attr_accessor :name
+
   validates :name, type: union(String)
 end
 
 describe 'ValidatedObject Union Types' do
   context 'when using union types' do
-
     it 'accepts values matching first union type (String)' do
       obj = SpecMultiType.new(id: 'abc123', status: :active, data: { key: 'value' })
       expect(obj).to be_valid
@@ -65,7 +66,7 @@ describe 'ValidatedObject Union Types' do
       expect(SpecUnionAttr.new(mixed: 'text')).to be_valid
       expect(SpecUnionAttr.new(mixed: 42)).to be_valid
       expect(SpecUnionAttr.new(mixed: %w[a b c])).to be_valid
-      
+
       expect do
         SpecUnionAttr.new(mixed: 3.14)
       end.to raise_error(ArgumentError, /is a Float.*not one of.*String.*Integer.*Array of String/)

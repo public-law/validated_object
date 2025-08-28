@@ -32,7 +32,7 @@ module ValidatedObject
           if type_val.is_a?(ValidatedObject::Base::Union)
             opts = { type: { with: type_val } }
             validates attribute, opts.merge(kwargs)
-          # Parse Array[ElementType] syntax  
+          # Parse Array[ElementType] syntax
           elsif type_val.is_a?(Array) && type_val.length == 1 && type_val[0].is_a?(Class)
             # This handles Array[Comment] syntax
             element_type = type_val[0]

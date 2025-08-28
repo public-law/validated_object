@@ -117,7 +117,7 @@ module ValidatedObject
         # Support union types
         if expected_class.is_a?(Union)
           return if validate_union_type(record, attribute, value, expected_class, validation_options)
-          
+
           save_union_error(record, attribute, value, expected_class, validation_options)
           return
         end
@@ -158,7 +158,7 @@ module ValidatedObject
                           validation_options[:message] || "is a #{value.class}, not a #{validation_options[:with]}"
       end
 
-      def validate_union_type(record, attribute, value, union, validation_options)
+      def validate_union_type(_record, _attribute, value, union, _validation_options)
         union.types.any? do |type_spec|
           if type_spec.is_a?(Array) && type_spec.length == 1
             # Handle [ElementType] syntax within union
@@ -175,13 +175,13 @@ module ValidatedObject
 
       def validate_array_element_type(value, element_type)
         return false unless value.is_a?(Array)
-        
+
         value.all? { |el| el.is_a?(element_type) }
       end
 
       def save_union_error(record, attribute, value, union, validation_options)
         return if validation_options[:message]
-        
+
         type_names = union.types.map do |type_spec|
           if type_spec.is_a?(Array) && type_spec.length == 1
             "Array of #{type_spec[0]}"
@@ -192,13 +192,13 @@ module ValidatedObject
             type_spec.inspect
           end
         end
-        
+
         message = if type_names.length == 1
-          "is a #{value.class}, not one of #{type_names.first}"
-        else
-          "is a #{value.class}, not one of #{type_names.join(', ')}"
-        end
-        
+                    "is a #{value.class}, not one of #{type_names.first}"
+                  else
+                    "is a #{value.class}, not one of #{type_names.join(', ')}"
+                  end
+
         record.errors.add attribute, message
       end
     end
