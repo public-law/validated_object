@@ -54,6 +54,21 @@ module ValidatedObject
     class Boolean
     end
 
+    # A private class definition for union types.
+    # Stores multiple allowed types for validation.
+    # Created via ValidatedObject::Base.union(*types)
+    #
+    # @example
+    #   validates :id, type: union(String, Integer)
+    #   validates :data, type: union(Hash, [Hash])
+    class Union
+      attr_reader :types
+
+      def initialize(*types)
+        @types = types
+      end
+    end
+
     # Instantiate and validate a new object.
     # @example
     #   maru = Dog.new(birthday: Date.today, name: 'Maru')
@@ -99,6 +114,14 @@ module ValidatedObject
         validation_options = options
         expected_class = validation_options[:with]
 
+        # Support union types
+        if expected_class.is_a?(Union)
+          return if validate_union_type(record, attribute, value, expected_class, validation_options)
+
+          save_union_error(record, attribute, value, expected_class, validation_options)
+          return
+        end
+
         # Support type: Array, element_type: ElementType
         if expected_class == Array && validation_options[:element_type]
           return save_error(record, attribute, value, validation_options) unless value.is_a?(Array)
@@ -134,6 +157,50 @@ module ValidatedObject
         record.errors.add attribute,
                           validation_options[:message] || "is a #{value.class}, not a #{validation_options[:with]}"
       end
+
+      def validate_union_type(_record, _attribute, value, union, _validation_options)
+        union.types.any? do |type_spec|
+          if type_spec.is_a?(Array) && type_spec.length == 1
+            # Handle [ElementType] syntax within union
+            validate_array_element_type(value, type_spec[0])
+          elsif type_spec.is_a?(Class) || type_spec == Boolean
+            # Handle class types (String, Integer, etc.) and pseudo-boolean
+            pseudo_boolean?(type_spec, value) || expected_class?(type_spec, value)
+          else
+            # Handle literal values (symbols, strings, numbers, etc.)
+            value == type_spec
+          end
+        end
+      end
+
+      def validate_array_element_type(value, element_type)
+        return false unless value.is_a?(Array)
+
+        value.all? { |el| el.is_a?(element_type) }
+      end
+
+      def save_union_error(record, attribute, value, union, validation_options)
+        return if validation_options[:message]
+
+        type_names = union.types.map do |type_spec|
+          if type_spec.is_a?(Array) && type_spec.length == 1
+            "Array of #{type_spec[0]}"
+          elsif type_spec.is_a?(Class) || type_spec == Boolean
+            type_spec.to_s
+          else
+            # For literal values like :active, show them as-is
+            type_spec.inspect
+          end
+        end
+
+        message = if type_names.length == 1
+                    "is a #{value.class}, not one of #{type_names.first}"
+                  else
+                    "is a #{value.class}, not one of #{type_names.join(', ')}"
+                  end
+
+        record.errors.add attribute, message
+      end
     end
 
     # Register the TypeValidator with ActiveModel so `type:` validation option works
@@ -144,6 +211,16 @@ module ValidatedObject
     # Allow 'validated' as a synonym for 'validates'
     def self.validated(*args, **kwargs, &block)
       validates(*args, **kwargs, &block)
+    end
+
+    # Create a union type specification for validation
+    # @param types [Array] The types that are allowed
+    # @return [Union] A union type specification
+    # @example
+    #   validates :id, type: union(String, Integer)
+    #   validates :data, type: union(Hash, [Hash])
+    def self.union(*types)
+      Union.new(*types)
     end
 
     private
