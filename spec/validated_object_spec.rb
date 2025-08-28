@@ -170,12 +170,23 @@ describe ValidatedObject do
         expect(post).to be_valid
       end
 
-      it 'correctly assigns attributes with streamlined syntax' do
+      it 'assigns id correctly' do
         post = streamlined_post.new(comments: [Comment.new, Comment.new], id: 1)
-
         expect(post.id).to eq 1
+      end
+
+      it 'assigns comments as an array' do
+        post = streamlined_post.new(comments: [Comment.new, Comment.new], id: 1)
         expect(post.comments).to be_an(Array)
+      end
+
+      it 'preserves comment count' do
+        post = streamlined_post.new(comments: [Comment.new, Comment.new], id: 1)
         expect(post.comments.length).to eq 2
+      end
+
+      it 'preserves comment types' do
+        post = streamlined_post.new(comments: [Comment.new, Comment.new], id: 1)
         expect(post.comments.first).to be_a(Comment)
       end
     end
