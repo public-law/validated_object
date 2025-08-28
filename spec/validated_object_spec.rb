@@ -48,7 +48,7 @@ describe ValidatedObject do
     expect { apple.diameter = 5.0 }.to raise_error(NoMethodError)
   end
 
-  it 'raises error on unknown attribute' do
+  it 'raises an error on unknown attribute' do
     expect do
       apple.new(diameter: 4.0, name: 'Bert')
     end.to raise_error(NoMethodError)
