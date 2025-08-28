@@ -107,14 +107,23 @@ describe ValidatedObject do
     end
 
     it "allows 'validated' as a synonym for 'validates'" do
-      class SynonymApple < ValidatedObject::Base
+      synonym_apple = Class.new(ValidatedObject::Base) do
         attr_accessor :diameter
 
         validated :diameter, type: Float
       end
-      apple = SynonymApple.new(diameter: 1.0)
-      expect(apple).to be_valid
-      expect { SynonymApple.new(diameter: 'bad') }.to raise_error(ArgumentError)
+
+      expect(synonym_apple.new(diameter: 1.0)).to be_valid
+    end
+
+    it "allows 'validated' as a synonym for 'validates', rejecting invalid types" do
+      synonym_apple = Class.new(ValidatedObject::Base) do
+        attr_accessor :diameter
+
+        validated :diameter, type: Float
+      end
+
+      expect { synonym_apple.new(diameter: 'bad') }.to raise_error(ArgumentError)
     end
 
     context 'when an Array is defined with the verbose syntax' do
