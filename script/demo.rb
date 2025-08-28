@@ -1,9 +1,9 @@
-# typed: ignore
 require 'date'
 require 'validated_object'
 
 class Dog < ValidatedObject::Base
   attr_reader :name, :birthday
+
   validates :name, presence: true
   validates :birthday, type: Date, allow_nil: true
 end

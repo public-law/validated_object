@@ -1,0 +1,14 @@
+plugins:
+  - rubocop-rspec
+  - rubocop-rake
+
+AllCops:
+  SuggestExtensions: true
+  DisplayCopNames: true
+  ExtraDetails: true
+  Color: true
+  FormatStyleGuide: true
+  DisabledByDefault: false
+
+Lint/ConstantDefinitionInBlock:
+  Enabled: false

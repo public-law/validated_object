@@ -1,11 +1,8 @@
-# typed: true
 # frozen_string_literal: true
 
 require 'active_model'
-require 'sorbet-runtime'
 require 'validated_object/version'
 require 'validated_object/simplified_api'
-
 
 module ValidatedObject
   # @abstract Subclass and add `attr_accessor` and validations
@@ -46,11 +43,8 @@ module ValidatedObject
   class Base
     include ActiveModel::Validations
     include SimplifiedApi
-    extend T::Sig
 
-    SymbolHash = T.type_alias { T::Hash[Symbol, T.untyped] }
-
-    EMPTY_HASH = T.let({}.freeze, SymbolHash)
+    EMPTY_HASH = {}.freeze
 
     # A private class definition, not intended to
     # be used directly. Implements a pseudo-boolean class
@@ -66,15 +60,14 @@ module ValidatedObject
     #
     # @raise [ArgumentError] if the object is not valid at the
     #   end of initialization or `attributes` is not a Hash.
-    sig { params(attributes: SymbolHash).void }
     def initialize(attributes = EMPTY_HASH)
       set_instance_variables from_hash: attributes
       check_validations!
-      nil
     end
 
     def validated_attr(attribute_name, **validation_options)
       attr_reader attribute_name
+
       validates attribute_name, validation_options
     end
 
@@ -82,7 +75,6 @@ module ValidatedObject
     #
     # @raise [ArgumentError] if any validations fail.
     # @return [ValidatedObject::Base] the receiver
-    sig { returns(ValidatedObject::Base) }
     def check_validations!
       raise ArgumentError, errors.full_messages.join('; ') if invalid?
 
@@ -102,21 +94,21 @@ module ValidatedObject
     #     validates :neutered, type: Boolean, allow_nil: true  # Typed but optional
     #   end
     class TypeValidator < ActiveModel::EachValidator
-      extend T::Sig
-
       # @return [nil]
-      sig do
-        params(
-          record: T.untyped,
-          attribute: T.untyped,
-          value: T.untyped
-        )
-          .void
-      end
       def validate_each(record, attribute, value)
-        validation_options = T.let(options, SymbolHash)
-
+        validation_options = options
         expected_class = validation_options[:with]
+
+        # Support type: Array, element_type: ElementType
+        if expected_class == Array && validation_options[:element_type]
+          return save_error(record, attribute, value, validation_options) unless value.is_a?(Array)
+
+          element_type = validation_options[:element_type]
+          unless value.all? { |el| el.is_a?(element_type) }
+            record.errors.add attribute, validation_options[:message] || "contains non-#{element_type} elements"
+          end
+          return
+        end
 
         return if pseudo_boolean?(expected_class, value) ||
                   expected_class?(expected_class, value)
@@ -126,34 +118,27 @@ module ValidatedObject
 
       private
 
-      sig { params(expected_class: T.untyped, value: T.untyped).returns(T.untyped) }
       def pseudo_boolean?(expected_class, value)
         expected_class == Boolean && boolean?(value)
       end
 
-      sig { params(expected_class: T.untyped, value: T.untyped).returns(T.untyped) }
       def expected_class?(expected_class, value)
         value.is_a?(expected_class)
       end
 
-      sig { params(value: T.untyped).returns(T.untyped) }
       def boolean?(value)
         value.is_a?(TrueClass) || value.is_a?(FalseClass)
       end
 
-      sig do
-        params(
-          record: T.untyped,
-          attribute: T.untyped,
-          value: T.untyped,
-          validation_options: SymbolHash
-        )
-          .void
-      end
       def save_error(record, attribute, value, validation_options)
         record.errors.add attribute,
                           validation_options[:message] || "is a #{value.class}, not a #{validation_options[:with]}"
       end
+    end
+
+    # Register the TypeValidator with ActiveModel so `type:` validation option works
+    unless ActiveModel::Validations.const_defined?(:TypeValidator)
+      ActiveModel::Validations.const_set(:TypeValidator, TypeValidator)
     end
 
     # Allow 'validated' as a synonym for 'validates'
@@ -163,8 +148,9 @@ module ValidatedObject
 
     private
 
-    sig { params(from_hash: SymbolHash).void }
     def set_instance_variables(from_hash:)
+      raise TypeError, "#{from_hash} is not a hash" unless from_hash.is_a?(Hash)
+
       from_hash.each do |variable_name, variable_value|
         # Test for the attribute reader
         send variable_name.to_sym

@@ -12,7 +12,7 @@ class Person < ValidatedObject::Base
 end
 
 # Instantiating it runs the validations.
-me  = Person.new(name: 'Robb')
+me  = Person.new(name: 'Robert')
 you = Person.new(name: '')     # => ArgumentError: "Name can't be blank"
 ```
 
@@ -81,6 +81,19 @@ The included `TypeValidator` is what enables `type: Date`, above. All classes ca
 validates :premium_membership, type: Boolean
 #...
 ```
+
+
+### Array element type validation
+
+You can validate that an attribute is an array of a specific type using array syntax:
+
+```ruby
+# Validate that names is an array of String objects.
+validates_attr :names, type: [String]
+```
+
+If the array contains any elements that are not of the specified type, validation will fail with a clear error message.
+
 
 ### Instantiating and automatically validating
 
