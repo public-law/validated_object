@@ -112,7 +112,7 @@ describe ValidatedObject do
       expect { SynonymApple.new(diameter: 'bad') }.to raise_error(ArgumentError)
     end
 
-    context 'Array element type validation' do
+    context 'when an Array is defined with the verbose syntax' do
       class Comment; end
 
       class Post < ValidatedObject::Base
@@ -120,25 +120,25 @@ describe ValidatedObject do
         validates_attr :tags,     type: Array, element_type: String,  allow_nil: true
       end
 
-      it 'accepts an array of correct element type (element_type: syntax)' do
+      it 'accepts an array of correct element type (element_type: syntax) - 1' do
         c1 = Comment.new
         c2 = Comment.new
         post = Post.new(comments: [c1, c2])
         expect(post).to be_valid
       end
 
-      it 'rejects an array with wrong element type (element_type: syntax)' do
+      it 'rejects an array with wrong element type (element_type: syntax) - 1' do
         expect do
           Post.new(comments: [Comment.new, 'bad'])
         end.to raise_error(ArgumentError, /contains non-Comment elements/)
       end
 
-      it 'accepts an array of correct element type (element_type: syntax)' do
+      it 'accepts an array of correct element type (element_type: syntax) - 2' do
         post = Post.new(tags: %w[foo bar])
         expect(post).to be_valid
       end
 
-      it 'rejects an array with wrong element type (element_type: syntax)' do
+      it 'rejects an array with wrong element type (element_type: syntax) - 2' do
         expect do
           Post.new(tags: ['foo', 123])
         end.to raise_error(ArgumentError, /contains non-String elements/)
