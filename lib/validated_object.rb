@@ -44,7 +44,7 @@ module ValidatedObject
     include ActiveModel::Validations
     include SimplifiedApi
 
-    EMPTY_HASH = {}
+    EMPTY_HASH = {}.freeze
 
     # A private class definition, not intended to
     # be used directly. Implements a pseudo-boolean class

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'validated_object'
 
 describe ValidatedObject do
   let(:apple) do
@@ -82,13 +83,15 @@ describe ValidatedObject do
     end
 
     it 'handles Boolean types' do
-      class Apple3 < ValidatedObject::Base
+      boolean_apple = Class.new(ValidatedObject::Base) do
         attr_accessor :rotten
 
-        validates :rotten, type: Boolean
+        # Outside of specs, in normal usage, you would use:
+        #   validates :rotten, type: Boolean
+        validates :rotten, type: ValidatedObject::Base::Boolean
       end
 
-      rotten_apple = Apple3.new rotten: true
+      rotten_apple = boolean_apple.new rotten: true
       expect(rotten_apple).to be_valid
     end
 
@@ -96,7 +99,9 @@ describe ValidatedObject do
       class Apple4 < ValidatedObject::Base
         attr_accessor :rotten
 
-        validates :rotten, type: Boolean
+        # Outside of specs, in normal usage, you would use:
+        #   validates :rotten, type: Boolean
+        validates :rotten, type: ValidatedObject::Base::Boolean
       end
 
       expect { Apple4.new rotten: 1 }.to raise_error(ArgumentError)
