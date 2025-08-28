@@ -157,13 +157,26 @@ describe ValidatedObject do
     end
 
     context 'when an Array is defined with the streamlined syntax' do
-      class Post2 < ValidatedObject::Base
-        validates_attr :comments, type: [Comment], allow_nil: true
+      let(:streamlined_post) do
+        Class.new(ValidatedObject::Base) do
+          validates_attr :comments, type: [Comment], allow_nil: true
+          validates_attr :id,       type: Integer
+        end
       end
 
-      it 'supports a streamlined syntax for element_type' do
-        post = Post2.new(comments: [Comment.new, Comment.new])
+      it 'supports the streamlined syntax' do
+        post = streamlined_post.new(comments: [Comment.new, Comment.new], id: 1)
+
         expect(post).to be_valid
+      end
+
+      it 'correctly assigns attributes with streamlined syntax' do
+        post = streamlined_post.new(comments: [Comment.new, Comment.new], id: 1)
+
+        expect(post.id).to eq 1
+        expect(post.comments).to be_an(Array)
+        expect(post.comments.length).to eq 2
+        expect(post.comments.first).to be_a(Comment)
       end
     end
   end
