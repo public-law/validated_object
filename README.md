@@ -11,7 +11,7 @@ class Person < ValidatedObject::Base
   validates_attr :email, format: { with: URI::MailTo::EMAIL_REGEXP }
 end
 
-person = Person.new(name: 'Alice', email: 'alice@example.com')  # ✓ Valid
+Person.new(name: 'Alice', email: 'alice@example.com')  # ✓ Valid
 Person.new(name: '', email: 'invalid')  # ✗ ArgumentError: "Name can't be blank; Email is invalid"
 ```
 
