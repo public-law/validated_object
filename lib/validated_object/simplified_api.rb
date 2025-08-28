@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 require 'active_support/concern'
 
-# Enable a simplified API for the common case of
-# read-only ValidatedObjects.
 module ValidatedObject
+  # Enable a simplified API for the common case of
+  # read-only ValidatedObjects.
   module SimplifiedApi
     extend ActiveSupport::Concern
 
@@ -19,7 +21,6 @@ module ValidatedObject
         validates(*args, **kwargs, &block)
       end
 
-      # Alias for validated_attr for compatibility with test usage.
       def validates_attr(attribute, *options, **kwargs)
         attr_reader attribute
 
