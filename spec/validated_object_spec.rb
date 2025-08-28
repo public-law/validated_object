@@ -41,13 +41,10 @@ describe ValidatedObject do
   it 'supports readonly attributes' do
     apple = immutable_apple.new(diameter: 4.0)
     expect(apple.diameter).to eq 4.0
-    expect { apple.diameter = 5.0 }.to raise_error(NoMethodError)
   end
 
-  it 'supports simplified readonly attributes' do
+  it 'raises an error when trying to set a readonly attribute' do
     apple = immutable_apple.new(diameter: 4.0)
-
-    expect(apple.diameter).to eq 4.0
     expect { apple.diameter = 5.0 }.to raise_error(NoMethodError)
   end
 
