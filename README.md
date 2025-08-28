@@ -5,6 +5,8 @@
 
 Create Ruby objects that validate themselves on instantiation, with clear error messages and flexible type checking including union types.
 
+Result: Invalid objects can't be instantiated. Illegal states are unrepresentable.
+
 ```ruby
 class Person < ValidatedObject::Base
   validates_attr :name, presence: true
