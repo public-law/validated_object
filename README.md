@@ -12,7 +12,7 @@ class Person < ValidatedObject::Base
 end
 
 # Instantiating it runs the validations.
-me  = Person.new(name: 'Robb')
+me  = Person.new(name: 'Robert')
 you = Person.new(name: '')     # => ArgumentError: "Name can't be blank"
 ```
 
@@ -81,6 +81,19 @@ The included `TypeValidator` is what enables `type: Date`, above. All classes ca
 validates :premium_membership, type: Boolean
 #...
 ```
+
+
+### Array element type validation
+
+You can validate that an attribute is an array of a specific type using array syntax:
+
+```ruby
+# Validate that names is an array of String objects.
+validates_attr :names, type: [String]
+```
+
+If the array contains any elements that are not of the specified type, validation will fail with a clear error message.
+
 
 ### Instantiating and automatically validating
 
@@ -181,17 +194,3 @@ Bug reports and pull requests are welcome on GitHub.
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-
-### Array element type validation
-
-You can validate that an attribute is an array of a specific type using the `element_type` option:
-
-```ruby
-# Validate that comments is an array of Comment objects
-validates_attr :comments, type: Array, element_type: Comment, allow_nil: true
-
-# Validate that tags is an array of strings
-validates_attr :tags, type: Array, element_type: String, allow_nil: true
-```
-
-If the array contains any elements that are not of the specified type, validation will fail with a clear error message.
