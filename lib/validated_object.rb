@@ -76,7 +76,7 @@ module ValidatedObject
     # @raise [ArgumentError] if the object is not valid at the
     #   end of initialization or `attributes` is not a Hash.
     def initialize(attributes = EMPTY_HASH)
-      set_instance_variables from_hash: attributes
+      assign_declared_attributes attributes
       check_validations!
     end
 
@@ -91,6 +91,7 @@ module ValidatedObject
     # @raise [ArgumentError] if any validations fail.
     # @return [ValidatedObject::Base] the receiver
     def check_validations!
+      return self if !defined?(@errors) && self.class.fast_valid?(self)
       raise ArgumentError, errors.full_messages.join('; ') if invalid?
 
       self
@@ -139,7 +140,33 @@ module ValidatedObject
         save_error(record, attribute, value, validation_options)
       end
 
+      FAST_PATH_OPTIONS = %i[with element_type allow_nil message].freeze
+
+      # @return [Boolean] whether {#acceptable?} fully decides this validation
+      def fast_path?
+        options.each_key.all? { |key| FAST_PATH_OPTIONS.include?(key) }
+      end
+
+      # The allocation-free equivalent of {#validate_each} reporting success.
+      # @return [Boolean]
+      def acceptable?(value)
+        return true if value.nil? && options[:allow_nil]
+
+        acceptable_type?(value, options[:with])
+      end
+
       private
+
+      def acceptable_type?(value, expected_class)
+        return validate_union_type(nil, nil, value, expected_class, options) if expected_class.is_a?(Union)
+
+        element_type = options[:element_type]
+        if expected_class == Array && element_type
+          return value.is_a?(Array) && validate_array_element_type(value, element_type)
+        end
+
+        pseudo_boolean?(expected_class, value) || expected_class?(expected_class, value)
+      end
 
       def pseudo_boolean?(expected_class, value)
         expected_class == Boolean && boolean?(value)
@@ -223,17 +250,121 @@ module ValidatedObject
       Union.new(*types)
     end
 
+    # The allocation-free equivalent of a successful `validates_format_of`
+    # with a literal `with:` Regexp.
+    #
+    # @api private
+    class FormatCheck
+      OPTIONS = %i[with allow_nil allow_blank message].freeze
+
+      def self.from(validator)
+        options = validator.options
+        return nil unless options[:with].is_a?(Regexp) && options.each_key.all? { |key| OPTIONS.include?(key) }
+
+        new(options[:with], allow_nil: options[:allow_nil], allow_blank: options[:allow_blank])
+      end
+
+      def initialize(regexp, allow_nil:, allow_blank:)
+        @regexp = regexp
+        @allow_nil = allow_nil
+        @allow_blank = allow_blank
+        freeze
+      end
+
+      def acceptable?(value)
+        return true if value.nil? && @allow_nil
+        return true if @allow_blank && value.blank?
+
+        @regexp.match?(value.to_s)
+      end
+    end
+
+    # Checks the receiver without ActiveModel's per-call allocations when
+    # every validation is a plain `type:` check. A `false` result only means
+    # the full ActiveModel run must decide, and build the error messages.
+    #
+    # @api private
+    # @return [Boolean]
+    def self.fast_valid?(record)
+      plan = fast_path_plan
+      return false unless plan
+
+      plan.all? do |attribute, check|
+        check.acceptable?(record.read_attribute_for_validation(attribute))
+      end
+    end
+
+    # The instance variable for an attribute key, only when the key names a
+    # public reader declared below {Base}. Anything else, such as `exit!`,
+    # `errors` or `instance_eval`, is rejected without being called.
+    #
+    # @api private
+    # @return [Symbol]
+    # @raise [NoMethodError] if the key is not a declared attribute.
+    def self.instance_variable_for(key)
+      attribute_ivars[key] || register_attribute(key)
+    end
+
+    def self.fast_path_plan
+      callbacks = _validate_callbacks
+      return @fast_path_plan if callbacks.equal?(@fast_path_callbacks)
+
+      @fast_path_plan = build_fast_path_plan(callbacks)
+      @fast_path_callbacks = callbacks
+      @fast_path_plan
+    end
+
+    def self.build_fast_path_plan(callbacks)
+      return nil unless stock_validation_run?
+
+      validators = callbacks.map(&:filter)
+      checks = validators.map { |validator| fast_check_for(validator) }
+      return nil unless checks.all?
+
+      validators.zip(checks).flat_map do |validator, check|
+        validator.attributes.map { |attribute| [attribute, check].freeze }
+      end.freeze
+    end
+
+    def self.fast_check_for(validator)
+      case validator
+      when TypeValidator then validator if validator.fast_path?
+      when ActiveModel::Validations::FormatValidator then FormatCheck.from(validator)
+      end
+    end
+
+    def self.stock_validation_run?
+      %i[valid? invalid? run_validations!].all? do |name|
+        instance_method(name).owner.equal?(ActiveModel::Validations)
+      end
+    end
+
+    def self.attribute_ivars
+      @attribute_ivars ||= {}
+    end
+
+    def self.register_attribute(key)
+      name = key.to_sym
+      raise NoMethodError.new("undefined attribute '#{name}' for #{self}", name) unless attribute_reader?(name)
+
+      attribute_ivars[key] = :"@#{name}"
+    end
+
+    def self.attribute_reader?(name)
+      public_method_defined?(name) && !Base.ancestors.include?(instance_method(name).owner)
+    end
+
+    private_class_method :fast_path_plan, :build_fast_path_plan, :attribute_ivars,
+                         :register_attribute, :attribute_reader?, :stock_validation_run?,
+                         :fast_check_for
+
     private
 
-    def set_instance_variables(from_hash:)
-      raise TypeError, "#{from_hash} is not a hash" unless from_hash.is_a?(Hash)
+    def assign_declared_attributes(attributes)
+      raise TypeError, "#{attributes} is not a hash" unless attributes.is_a?(Hash)
 
-      from_hash.each do |variable_name, variable_value|
-        # Test for the attribute reader
-        send variable_name.to_sym
-
-        # Set value in a way that succeeds even if attr is read-only
-        instance_variable_set "@#{variable_name}".to_sym, variable_value
+      attributes.each do |key, value|
+        instance_variable_set self.class.instance_variable_for(key), value
       end
     end
   end

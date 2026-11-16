@@ -72,6 +72,12 @@ describe ValidatedObject do
     end.to raise_error(NoMethodError)
   end
 
+  it 'rejects keys naming methods that are not declared attributes, without calling them' do
+    %w[exit! abort errors instance_eval].each do |key|
+      expect { apple.new(key => 1) }.to raise_error(NoMethodError)
+    end
+  end
+
   context 'when using the TypeValidator' do
     it 'verifies a valid type' do
       small_apple = apple.new(diameter: 2.0)
